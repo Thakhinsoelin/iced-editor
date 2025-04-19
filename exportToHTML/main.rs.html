@@ -1,0 +1,225 @@
+<html>
+<head>
+<title>main.rs</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #bcbec4;}
+.s3 { color: #6aab73;}
+.s4 { color: #20999d; font-style: italic;}
+.s5 { color: #2aacb8;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+main.rs</font>
+</center></td></tr></table>
+<pre><span class="s0">use </span><span class="s1">std</span><span class="s2">::</span><span class="s1">sync</span><span class="s2">::</span><span class="s1">Arc</span><span class="s2">;</span>
+<span class="s0">use </span><span class="s1">iced</span><span class="s2">::{</span><span class="s1">font</span><span class="s2">, </span><span class="s1">Font</span><span class="s2">, </span><span class="s1">executor</span><span class="s2">, </span><span class="s1">Application</span><span class="s2">, </span><span class="s1">Command</span><span class="s2">, </span><span class="s1">Element</span><span class="s2">, </span><span class="s1">Length</span><span class="s2">, </span><span class="s1">Settings</span><span class="s2">, </span><span class="s1">Theme</span><span class="s2">};</span>
+<span class="s0">use </span><span class="s1">iced</span><span class="s2">::</span><span class="s1">widget</span><span class="s2">::{</span><span class="s1">button</span><span class="s2">, </span><span class="s1">column</span><span class="s2">, </span><span class="s1">container</span><span class="s2">, </span><span class="s1">horizontal_space</span><span class="s2">, </span><span class="s1">row</span><span class="s2">, </span><span class="s1">text</span><span class="s2">, </span><span class="s1">text_editor</span><span class="s2">, </span><span class="s1">tooltip</span><span class="s2">};</span>
+<span class="s0">use </span><span class="s1">iced</span><span class="s2">::</span><span class="s1">theme</span><span class="s2">;</span>
+<span class="s0">use </span><span class="s1">std</span><span class="s2">::</span><span class="s1">io</span><span class="s2">;</span>
+<span class="s0">use </span><span class="s1">std</span><span class="s2">::</span><span class="s1">path</span><span class="s2">::{</span><span class="s1">Path</span><span class="s2">, </span><span class="s1">PathBuf</span><span class="s2">};</span>
+<span class="s0">fn </span><span class="s1">main</span><span class="s2">() -&gt; </span><span class="s1">iced</span><span class="s2">::</span><span class="s1">Result </span><span class="s2">{</span>
+    <span class="s1">Editor</span><span class="s2">::</span><span class="s1">run</span><span class="s2">(</span><span class="s1">Settings </span><span class="s2">{</span>
+        <span class="s1">default_font</span><span class="s2">: </span><span class="s1">Font</span><span class="s2">::</span><span class="s1">MONOSPACE</span><span class="s2">,</span>
+        <span class="s1">fonts</span><span class="s2">: </span><span class="s1">vec</span><span class="s2">![</span><span class="s1">include_bytes</span><span class="s2">!(</span><span class="s3">&quot;../fonts/font/editor-icons.ttf&quot;</span><span class="s2">)</span>
+            <span class="s2">.</span><span class="s1">as_slice</span><span class="s2">()</span>
+            <span class="s2">.</span><span class="s1">into</span><span class="s2">()],</span>
+        <span class="s2">..</span><span class="s1">Settings</span><span class="s2">::</span><span class="s1">default</span><span class="s2">()</span>
+    <span class="s2">})</span>
+<span class="s2">}</span>
+
+
+<span class="s0">struct </span><span class="s1">Editor </span><span class="s2">{</span>
+    <span class="s1">path</span><span class="s2">: </span><span class="s1">Option</span><span class="s2">&lt;</span><span class="s1">PathBuf</span><span class="s2">&gt;,</span>
+    <span class="s1">content</span><span class="s2">: </span><span class="s1">text_editor</span><span class="s2">::</span><span class="s1">Content</span><span class="s2">,</span>
+    <span class="s1">error</span><span class="s2">: </span><span class="s1">Option</span><span class="s2">&lt;</span><span class="s1">Error</span><span class="s2">&gt;</span>
+<span class="s2">}</span>
+
+<span class="s2">#[</span><span class="s1">derive</span><span class="s2">(</span><span class="s1">Debug</span><span class="s2">, </span><span class="s1">Clone</span><span class="s2">)]</span>
+<span class="s0">enum </span><span class="s1">Messages </span><span class="s2">{</span>
+    <span class="s1">Edit</span><span class="s2">(</span><span class="s1">text_editor</span><span class="s2">::</span><span class="s1">Action</span><span class="s2">),</span>
+    <span class="s1">New</span><span class="s2">,</span>
+    <span class="s1">Open</span><span class="s2">,</span>
+    <span class="s1">FileOpened</span><span class="s2">(</span><span class="s1">Result</span><span class="s2">&lt;(</span><span class="s1">PathBuf</span><span class="s2">, </span><span class="s1">Arc</span><span class="s2">&lt;</span><span class="s1">String</span><span class="s2">&gt;), </span><span class="s1">Error</span><span class="s2">&gt;),</span>
+    <span class="s1">Save</span><span class="s2">,</span>
+    <span class="s1">File_Saved</span><span class="s2">(</span><span class="s1">Result</span><span class="s2">&lt;</span><span class="s1">PathBuf</span><span class="s2">, </span><span class="s1">Error</span><span class="s2">&gt;),</span>
+<span class="s2">}</span>
+
+<span class="s0">impl </span><span class="s1">Application </span><span class="s0">for </span><span class="s1">Editor </span><span class="s2">{</span>
+    <span class="s0">type </span><span class="s1">Executor </span><span class="s2">= </span><span class="s1">executor</span><span class="s2">::</span><span class="s1">Default</span><span class="s2">;</span>
+    <span class="s0">type </span><span class="s1">Message </span><span class="s2">= </span><span class="s1">Messages</span><span class="s2">;</span>
+    <span class="s0">type </span><span class="s1">Theme </span><span class="s2">= </span><span class="s1">Theme</span><span class="s2">;</span>
+    <span class="s0">type </span><span class="s1">Flags </span><span class="s2">= ();</span>
+
+    <span class="s0">fn </span><span class="s1">new</span><span class="s2">(</span><span class="s1">_flags</span><span class="s2">: </span><span class="s0">Self</span><span class="s2">::</span><span class="s1">Flags</span><span class="s2">) -&gt; (</span><span class="s0">Self</span><span class="s2">, </span><span class="s1">Command</span><span class="s2">&lt;</span><span class="s1">Messages</span><span class="s2">&gt;) {</span>
+        <span class="s2">(</span>
+            <span class="s0">Self </span><span class="s2">{</span>
+                <span class="s1">path</span><span class="s2">: </span><span class="s1">None</span><span class="s2">,</span>
+                <span class="s1">content</span><span class="s2">: </span><span class="s1">text_editor</span><span class="s2">::</span><span class="s1">Content</span><span class="s2">::</span><span class="s1">new</span><span class="s2">(),</span>
+                <span class="s1">error</span><span class="s2">: </span><span class="s1">None</span><span class="s2">,</span>
+            <span class="s2">},</span>
+            <span class="s1">Command</span><span class="s2">::</span><span class="s1">perform</span><span class="s2">(</span>
+                <span class="s1">load_file</span><span class="s2">(</span><span class="s1">default_file</span><span class="s2">()), </span>
+                <span class="s1">Messages</span><span class="s2">::</span><span class="s1">FileOpened</span><span class="s2">,</span>
+            <span class="s2">),</span>
+        <span class="s2">)</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fn </span><span class="s1">title</span><span class="s2">(&amp;</span><span class="s0">self</span><span class="s2">) -&gt; </span><span class="s1">String </span><span class="s2">{</span>
+        <span class="s1">String</span><span class="s2">::</span><span class="s1">from</span><span class="s2">(</span><span class="s3">&quot;A cool editor!&quot;</span><span class="s2">)</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fn </span><span class="s1">update</span><span class="s2">(&amp;</span><span class="s0">mut self</span><span class="s2">, </span><span class="s1">message</span><span class="s2">: </span><span class="s1">Messages</span><span class="s2">) -&gt; </span><span class="s1">Command</span><span class="s2">&lt;</span><span class="s1">Messages</span><span class="s2">&gt;{</span>
+        <span class="s0">match </span><span class="s1">message </span><span class="s2">{</span>
+            <span class="s1">Messages</span><span class="s2">::</span><span class="s1">Edit</span><span class="s2">(</span><span class="s1">action</span><span class="s2">) =&gt; {</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">content</span><span class="s2">.</span><span class="s1">edit</span><span class="s2">(</span><span class="s1">action</span><span class="s2">);</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">error </span><span class="s2">= </span><span class="s1">None</span><span class="s2">;</span>
+                <span class="s1">Command</span><span class="s2">::</span><span class="s1">none</span><span class="s2">()</span>
+            <span class="s2">}</span>
+            <span class="s1">Messages</span><span class="s2">::</span><span class="s1">New </span><span class="s2">=&gt; {</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">path </span><span class="s2">= </span><span class="s1">None</span><span class="s2">;</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">content </span><span class="s2">= </span><span class="s1">text_editor</span><span class="s2">::</span><span class="s1">Content</span><span class="s2">::</span><span class="s1">new</span><span class="s2">();</span>
+                <span class="s1">Command</span><span class="s2">::</span><span class="s1">none</span><span class="s2">()</span>
+            <span class="s2">}</span>
+            <span class="s1">Messages</span><span class="s2">::</span><span class="s1">Save </span><span class="s2">=&gt; {</span>
+                <span class="s0">let </span><span class="s1">text </span><span class="s2">= </span><span class="s0">self</span><span class="s2">.</span><span class="s1">content</span><span class="s2">.</span><span class="s1">text</span><span class="s2">();</span>
+                <span class="s1">Command</span><span class="s2">::</span><span class="s1">perform</span><span class="s2">(</span><span class="s1">save_file</span><span class="s2">(</span><span class="s0">self</span><span class="s2">.</span><span class="s1">path</span><span class="s2">.</span><span class="s1">clone</span><span class="s2">(), </span><span class="s1">text</span><span class="s2">), </span><span class="s1">Messages</span><span class="s2">::</span><span class="s1">File_Saved</span><span class="s2">)</span>
+            <span class="s2">}</span>
+            <span class="s1">Messages</span><span class="s2">::</span><span class="s1">File_Saved</span><span class="s2">(</span><span class="s1">Ok</span><span class="s2">(</span><span class="s1">Path</span><span class="s2">)) =&gt; {</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">path </span><span class="s2">= </span><span class="s1">Some</span><span class="s2">(</span><span class="s1">Path</span><span class="s2">);</span>
+                <span class="s1">Command</span><span class="s2">::</span><span class="s1">none</span><span class="s2">()</span>
+            <span class="s2">}</span>
+            <span class="s1">Messages</span><span class="s2">::</span><span class="s1">File_Saved</span><span class="s2">(</span><span class="s1">Err</span><span class="s2">(</span><span class="s1">error</span><span class="s2">)) =&gt; {</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">error </span><span class="s2">= </span><span class="s1">Some</span><span class="s2">(</span><span class="s1">error</span><span class="s2">);</span>
+                <span class="s1">Command</span><span class="s2">::</span><span class="s1">none</span><span class="s2">()</span>
+            <span class="s2">}</span>
+            <span class="s1">Messages</span><span class="s2">::</span><span class="s1">Open </span><span class="s2">=&gt; {</span>
+                <span class="s1">Command</span><span class="s2">::</span><span class="s1">perform</span><span class="s2">(</span><span class="s1">pick_file</span><span class="s2">(), </span><span class="s1">Messages</span><span class="s2">::</span><span class="s1">FileOpened</span><span class="s2">)</span>
+            <span class="s2">}</span>
+            <span class="s1">Messages</span><span class="s2">::</span><span class="s1">FileOpened</span><span class="s2">(</span><span class="s1">Ok</span><span class="s2">((</span><span class="s1">path</span><span class="s2">, </span><span class="s1">content</span><span class="s2">))) =&gt; {</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">path </span><span class="s2">= </span><span class="s1">Some</span><span class="s2">(</span><span class="s1">path</span><span class="s2">);</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">content </span><span class="s2">= </span><span class="s1">text_editor</span><span class="s2">::</span><span class="s1">Content</span><span class="s2">::</span><span class="s1">with</span><span class="s2">(&amp;</span><span class="s1">content</span><span class="s2">); </span>
+                <span class="s1">Command</span><span class="s2">::</span><span class="s1">none</span><span class="s2">()</span>
+            <span class="s2">}</span>
+
+            <span class="s1">Messages</span><span class="s2">::</span><span class="s1">FileOpened</span><span class="s2">(</span><span class="s1">Err</span><span class="s2">(</span><span class="s1">error</span><span class="s2">)) =&gt; {</span>
+                <span class="s0">self</span><span class="s2">.</span><span class="s1">error </span><span class="s2">= </span><span class="s1">Some</span><span class="s2">(</span><span class="s1">error</span><span class="s2">);</span>
+                <span class="s1">Command</span><span class="s2">::</span><span class="s1">none</span><span class="s2">()</span>
+            <span class="s2">}</span>
+        <span class="s2">}</span>
+        
+    
+    <span class="s2">}</span>
+
+    <span class="s0">fn </span><span class="s1">view</span><span class="s2">(&amp;</span><span class="s0">self</span><span class="s2">) -&gt; </span><span class="s1">Element</span><span class="s2">&lt;</span><span class="s4">'_</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">&gt; {</span>
+        <span class="s0">let </span><span class="s1">controls </span><span class="s2">= </span><span class="s1">row</span><span class="s2">![</span>
+            <span class="s1">action</span><span class="s2">(</span><span class="s1">new_icon</span><span class="s2">(), </span><span class="s3">&quot;Create a New File&quot;</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">::</span><span class="s1">New</span><span class="s2">),</span>
+            <span class="s1">action</span><span class="s2">(</span><span class="s1">save_icon</span><span class="s2">(), </span><span class="s3">&quot;Save File&quot;</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">::</span><span class="s1">Save</span><span class="s2">),</span>
+            <span class="s1">action</span><span class="s2">(</span><span class="s1">open_icon</span><span class="s2">(),</span><span class="s3">&quot;Open File&quot;</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">::</span><span class="s1">Open</span><span class="s2">),</span>
+        <span class="s2">].</span><span class="s1">spacing</span><span class="s2">(</span><span class="s5">10</span><span class="s2">);</span>
+        <span class="s0">let </span><span class="s1">input </span><span class="s2">= </span><span class="s1">text_editor</span><span class="s2">(&amp;</span><span class="s0">self</span><span class="s2">.</span><span class="s1">content</span><span class="s2">).</span><span class="s1">on_edit</span><span class="s2">(</span><span class="s1">Messages</span><span class="s2">::</span><span class="s1">Edit</span><span class="s2">);</span>
+
+
+        <span class="s0">let </span><span class="s1">status_bar </span><span class="s2">= {</span>
+            <span class="s0">let </span><span class="s1">status </span><span class="s2">= </span><span class="s0">if let </span><span class="s1">Some</span><span class="s2">(</span><span class="s1">Error</span><span class="s2">::</span><span class="s1">IO</span><span class="s2">(</span><span class="s1">error</span><span class="s2">)) = </span><span class="s0">self</span><span class="s2">.</span><span class="s1">error</span><span class="s2">.</span><span class="s1">as_ref</span><span class="s2">() {</span>
+                <span class="s1">text</span><span class="s2">(</span><span class="s1">error</span><span class="s2">.</span><span class="s1">to_string</span><span class="s2">())</span>
+            <span class="s2">} </span><span class="s0">else </span><span class="s2">{</span>
+                <span class="s0">match self</span><span class="s2">.</span><span class="s1">path</span><span class="s2">.</span><span class="s1">as_deref</span><span class="s2">().</span><span class="s1">and_then</span><span class="s2">(</span><span class="s1">Path</span><span class="s2">::</span><span class="s1">to_str</span><span class="s2">) {</span>
+                    <span class="s1">Some</span><span class="s2">(</span><span class="s1">path</span><span class="s2">) =&gt; </span><span class="s1">text</span><span class="s2">(</span><span class="s1">path</span><span class="s2">).</span><span class="s1">size</span><span class="s2">(</span><span class="s5">14</span><span class="s2">),</span>
+                    <span class="s1">None </span><span class="s2">=&gt; </span><span class="s1">text</span><span class="s2">(</span><span class="s3">&quot;New file&quot;</span><span class="s2">),</span>
+                <span class="s2">}</span>
+            <span class="s2">};</span>
+
+            <span class="s0">let </span><span class="s1">position </span><span class="s2">= {</span>
+                <span class="s0">let </span><span class="s2">(</span><span class="s1">line</span><span class="s2">, </span><span class="s1">column</span><span class="s2">) = </span><span class="s0">self</span><span class="s2">.</span><span class="s1">content</span><span class="s2">.</span><span class="s1">cursor_position</span><span class="s2">();</span>
+
+                <span class="s1">text</span><span class="s2">(</span><span class="s1">format</span><span class="s2">!(</span><span class="s3">&quot;{}:{}&quot;</span><span class="s2">, </span><span class="s1">line </span><span class="s2">+ </span><span class="s5">1</span><span class="s2">, </span><span class="s1">column </span><span class="s2">+ </span><span class="s5">1</span><span class="s2">))</span>
+            <span class="s2">};</span>
+            <span class="s1">row</span><span class="s2">![</span><span class="s1">status</span><span class="s2">, </span><span class="s1">horizontal_space</span><span class="s2">(</span><span class="s1">Length</span><span class="s2">::</span><span class="s1">Fill</span><span class="s2">), </span><span class="s1">position</span><span class="s2">]</span>
+        <span class="s2">};</span>
+        <span class="s1">container</span><span class="s2">(</span><span class="s1">column</span><span class="s2">![</span><span class="s1">controls</span><span class="s2">, </span><span class="s1">input</span><span class="s2">, </span><span class="s1">status_bar</span><span class="s2">].</span><span class="s1">spacing</span><span class="s2">(</span><span class="s5">10</span><span class="s2">))</span>
+            <span class="s2">.</span><span class="s1">padding</span><span class="s2">(</span><span class="s5">10</span><span class="s2">)</span>
+            <span class="s2">.</span><span class="s1">into</span><span class="s2">()</span>
+    <span class="s2">}</span>
+
+    <span class="s0">fn </span><span class="s1">theme</span><span class="s2">(&amp;</span><span class="s0">self</span><span class="s2">) -&gt; </span><span class="s1">Theme </span><span class="s2">{</span>
+        <span class="s1">Theme</span><span class="s2">::</span><span class="s1">Dark</span>
+    <span class="s2">}</span>
+<span class="s2">}</span>
+
+<span class="s1">async </span><span class="s0">fn </span><span class="s1">load_file</span><span class="s2">(</span><span class="s1">path</span><span class="s2">: </span><span class="s1">PathBuf</span><span class="s2">) -&gt; </span><span class="s1">Result</span><span class="s2">&lt;(</span><span class="s1">PathBuf</span><span class="s2">, </span><span class="s1">Arc</span><span class="s2">&lt;</span><span class="s1">String</span><span class="s2">&gt;), </span><span class="s1">Error</span><span class="s2">&gt; {</span>
+    <span class="s0">let </span><span class="s1">contents </span><span class="s2">= </span><span class="s1">tokio</span><span class="s2">::</span><span class="s1">fs</span><span class="s2">::</span><span class="s1">read_to_string</span><span class="s2">(&amp;</span><span class="s1">path</span><span class="s2">)</span>
+        <span class="s2">.</span><span class="s1">await</span>
+        <span class="s2">.</span><span class="s1">map</span><span class="s2">(</span><span class="s1">Arc</span><span class="s2">::</span><span class="s1">new</span><span class="s2">)</span>
+        <span class="s2">.</span><span class="s1">map_err</span><span class="s2">(|</span><span class="s1">error</span><span class="s2">| </span><span class="s1">error</span><span class="s2">.</span><span class="s1">kind</span><span class="s2">())</span>
+        <span class="s2">.</span><span class="s1">map_err</span><span class="s2">(|</span><span class="s1">error</span><span class="s2">| </span><span class="s1">Error</span><span class="s2">::</span><span class="s1">IO</span><span class="s2">(</span><span class="s1">error</span><span class="s2">))?;</span>
+
+    <span class="s1">Ok</span><span class="s2">((</span><span class="s1">path</span><span class="s2">, </span><span class="s1">contents</span><span class="s2">))</span>
+<span class="s2">}</span>
+
+<span class="s1">async </span><span class="s0">fn </span><span class="s1">pick_file</span><span class="s2">() -&gt; </span><span class="s1">Result</span><span class="s2">&lt;(</span><span class="s1">PathBuf</span><span class="s2">, </span><span class="s1">Arc</span><span class="s2">&lt;</span><span class="s1">String</span><span class="s2">&gt;), </span><span class="s1">Error</span><span class="s2">&gt; {</span>
+    <span class="s0">let </span><span class="s1">handle </span><span class="s2">= </span><span class="s1">rfd</span><span class="s2">::</span><span class="s1">AsyncFileDialog</span><span class="s2">::</span><span class="s1">new</span><span class="s2">().</span><span class="s1">set_title</span><span class="s2">(</span><span class="s3">&quot;Choose a text file...&quot;</span><span class="s2">).</span><span class="s1">pick_file</span><span class="s2">().</span><span class="s1">await</span><span class="s2">.</span><span class="s1">ok_or</span><span class="s2">(</span><span class="s1">Error</span><span class="s2">::</span><span class="s1">DialogClosed</span><span class="s2">)?;</span>
+    <span class="s1">load_file</span><span class="s2">(</span><span class="s1">handle</span><span class="s2">.</span><span class="s1">path</span><span class="s2">().</span><span class="s1">to_owned</span><span class="s2">()).</span><span class="s1">await</span>
+<span class="s2">}</span>
+
+<span class="s1">async </span><span class="s0">fn </span><span class="s1">save_file</span><span class="s2">(</span><span class="s1">path</span><span class="s2">: </span><span class="s1">Option</span><span class="s2">&lt;</span><span class="s1">PathBuf</span><span class="s2">&gt;, </span><span class="s1">text</span><span class="s2">: </span><span class="s1">String</span><span class="s2">) -&gt; </span><span class="s1">Result</span><span class="s2">&lt;</span><span class="s1">PathBuf</span><span class="s2">, </span><span class="s1">Error</span><span class="s2">&gt; {</span>
+    <span class="s0">let </span><span class="s1">path </span><span class="s2">= </span><span class="s0">if let </span><span class="s1">Some</span><span class="s2">(</span><span class="s1">path</span><span class="s2">) = </span><span class="s1">path </span><span class="s2">{</span>
+        <span class="s1">path</span>
+    <span class="s2">} </span><span class="s0">else </span><span class="s2">{</span>
+        <span class="s1">rfd</span><span class="s2">::</span><span class="s1">AsyncFileDialog</span><span class="s2">::</span><span class="s1">new</span><span class="s2">()</span>
+            <span class="s2">.</span><span class="s1">set_title</span><span class="s2">(</span><span class="s3">&quot;Choose a file name...&quot;</span><span class="s2">)</span>
+            <span class="s2">.</span><span class="s1">save_file</span><span class="s2">()</span>
+            <span class="s2">.</span><span class="s1">await</span>
+            <span class="s2">.</span><span class="s1">ok_or</span><span class="s2">(</span><span class="s1">Error</span><span class="s2">::</span><span class="s1">DialogClosed</span><span class="s2">)</span>
+            <span class="s2">.</span><span class="s1">map</span><span class="s2">(|</span><span class="s1">handle</span><span class="s2">| </span><span class="s1">handle</span><span class="s2">.</span><span class="s1">path</span><span class="s2">().</span><span class="s1">to_owned</span><span class="s2">())?</span>
+    <span class="s2">};</span>
+
+    <span class="s1">tokio</span><span class="s2">::</span><span class="s1">fs</span><span class="s2">::</span><span class="s1">write</span><span class="s2">(&amp;</span><span class="s1">path</span><span class="s2">, &amp;</span><span class="s1">text</span><span class="s2">).</span><span class="s1">await</span><span class="s2">.</span><span class="s1">map_err</span><span class="s2">(|</span><span class="s1">error</span><span class="s2">| </span><span class="s1">Error</span><span class="s2">::</span><span class="s1">IO</span><span class="s2">(</span><span class="s1">error</span><span class="s2">.</span><span class="s1">kind</span><span class="s2">()))?;</span>
+    <span class="s1">Ok</span><span class="s2">(</span><span class="s1">path</span><span class="s2">)</span>
+<span class="s2">}</span>
+
+<span class="s2">#[</span><span class="s1">derive</span><span class="s2">(</span><span class="s1">Debug</span><span class="s2">, </span><span class="s1">Clone</span><span class="s2">)]</span>
+<span class="s0">enum </span><span class="s1">Error </span><span class="s2">{</span>
+    <span class="s1">DialogClosed</span><span class="s2">,</span>
+    <span class="s1">IO</span><span class="s2">(</span><span class="s1">io</span><span class="s2">::</span><span class="s1">ErrorKind</span><span class="s2">)</span>
+<span class="s2">}</span>
+
+
+<span class="s0">fn </span><span class="s1">new_icon</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">&gt;() -&gt; </span><span class="s1">Element</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">&gt; {</span>
+    <span class="s1">icon</span><span class="s2">(</span><span class="s3">'</span><span class="s0">\u{E800}</span><span class="s3">'</span><span class="s2">)</span>
+<span class="s2">}</span>
+
+<span class="s0">fn </span><span class="s1">open_icon</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">&gt;() -&gt; </span><span class="s1">Element</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">&gt; {</span>
+    <span class="s1">icon</span><span class="s2">(</span><span class="s3">'</span><span class="s0">\u{E802}</span><span class="s3">'</span><span class="s2">)</span>
+<span class="s2">}</span>
+
+<span class="s0">fn </span><span class="s1">save_icon</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">&gt;() -&gt; </span><span class="s1">Element</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">&gt; {</span>
+    <span class="s1">icon</span><span class="s2">(</span><span class="s3">'</span><span class="s0">\u{E801}</span><span class="s3">'</span><span class="s2">)</span>
+<span class="s2">}</span>
+<span class="s0">fn </span><span class="s1">icon</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">, </span><span class="s1">Message</span><span class="s2">&gt;(</span><span class="s1">codepoint</span><span class="s2">: </span><span class="s1">char</span><span class="s2">) -&gt; </span><span class="s1">Element</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">, </span><span class="s1">Message</span><span class="s2">&gt;{</span>
+    <span class="s0">const </span><span class="s1">ICON_FONT</span><span class="s2">: </span><span class="s1">Font </span><span class="s2">= </span><span class="s1">Font</span><span class="s2">::</span><span class="s1">with_name</span><span class="s2">(</span><span class="s3">&quot;editor-icons&quot;</span><span class="s2">);</span>
+    <span class="s1">text</span><span class="s2">(</span><span class="s1">codepoint</span><span class="s2">).</span><span class="s1">font</span><span class="s2">(</span><span class="s1">ICON_FONT</span><span class="s2">).</span><span class="s1">into</span><span class="s2">()</span>
+<span class="s2">}</span>
+
+<span class="s0">fn </span><span class="s1">action</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">&gt;(</span><span class="s1">content</span><span class="s2">: </span><span class="s1">Element</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">&gt;, </span><span class="s1">label</span><span class="s2">: &amp;</span><span class="s1">str</span><span class="s2">, </span><span class="s1">on_press</span><span class="s2">: </span><span class="s1">Messages</span><span class="s2">) -&gt; </span><span class="s1">Element</span><span class="s2">&lt;</span><span class="s4">'a</span><span class="s2">, </span><span class="s1">Messages</span><span class="s2">&gt; {</span>
+    <span class="s1">tooltip</span><span class="s2">(</span>
+        <span class="s1">button</span><span class="s2">(</span><span class="s1">container</span><span class="s2">(</span><span class="s1">content</span><span class="s2">).</span><span class="s1">width</span><span class="s2">(</span><span class="s5">30</span><span class="s2">).</span><span class="s1">center_x</span><span class="s2">())</span>
+            <span class="s2">.</span><span class="s1">on_press</span><span class="s2">(</span><span class="s1">on_press</span><span class="s2">)</span>
+            <span class="s2">.</span><span class="s1">padding</span><span class="s2">([</span><span class="s5">5</span><span class="s2">, </span><span class="s5">10</span><span class="s2">]),</span>
+        <span class="s1">label</span><span class="s2">,</span>
+        <span class="s1">tooltip</span><span class="s2">::</span><span class="s1">Position</span><span class="s2">::</span><span class="s1">FollowCursor</span>
+    <span class="s2">)</span>
+        <span class="s2">.</span><span class="s1">style</span><span class="s2">(</span><span class="s1">theme</span><span class="s2">::</span><span class="s1">Container</span><span class="s2">::</span><span class="s1">Box</span><span class="s2">)</span>
+        <span class="s2">.</span><span class="s1">into</span><span class="s2">()</span>
+<span class="s2">}</span>
+
+<span class="s0">fn </span><span class="s1">default_file</span><span class="s2">() -&gt; </span><span class="s1">PathBuf </span><span class="s2">{</span>
+    <span class="s1">PathBuf</span><span class="s2">::</span><span class="s1">from</span><span class="s2">(</span><span class="s1">format</span><span class="s2">!(</span><span class="s3">&quot;{}/src/main.rs&quot;</span><span class="s2">, </span><span class="s1">env</span><span class="s2">!(</span><span class="s3">&quot;CARGO_MANIFEST_DIR&quot;</span><span class="s2">)))</span>
+<span class="s2">}</span></pre>
+</body>
+</html>
